@@ -42,4 +42,31 @@ class FirebaseService {
       ); // Atualiza a cada 2 segundos
     }
   }
+
+  /// Liga/Desliga a bomba de água (caminho: /bomba/on)
+  Future<bool> setPumpOn(bool on) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$_baseUrl/bomba.json'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'on': on}),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        if (kDebugMode) {
+          debugPrint(
+            'Erro ao atualizar bomba: ${response.statusCode} - ${response.body}',
+          );
+        }
+        return false;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Erro na requisição da bomba: $e');
+      }
+      return false;
+    }
+  }
 }

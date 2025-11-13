@@ -5,15 +5,15 @@ allprojects {
     }
 }
 
-val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build").get()
-rootProject.layout.buildDirectory.value(newBuildDir)
+// Move all build outputs to the project root's build/ directory
+// From android/ directory, the correct relative path is ../build
+val rootBuildDirProvider = rootProject.layout.buildDirectory.dir("../build")
+rootProject.layout.buildDirectory.set(rootBuildDirProvider)
 
 subprojects {
-    val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
-    project.layout.buildDirectory.value(newSubprojectBuildDir)
-}
-subprojects {
-    project.evaluationDependsOn(":app")
+    // Each subproject writes under build/<moduleName>
+    val subprojectBuildDirProvider = rootBuildDirProvider.map { it.dir(project.name) }
+    layout.buildDirectory.set(subprojectBuildDirProvider)
 }
 
 tasks.register<Delete>("clean") {

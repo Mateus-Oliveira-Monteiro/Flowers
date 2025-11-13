@@ -21,6 +21,9 @@ class _HomeScreenState extends State<HomeScreen> {
   PlantInfo? _selectedPlantInfo;
   bool _isLoading = true;
   String? _errorMessage;
+  // Estado de irrigação
+  int _waterSeconds = 5;
+  bool _isWatering = false;
 
   @override
   void initState() {
@@ -232,6 +235,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
         const SizedBox(height: 20),
 
+        // Controle de irrigação (botão + seletor de segundos)
+        _buildIrrigationControl(),
+
+        const SizedBox(height: 20),
+
         // Card com informações detalhadas
         SensorInfoCard(sensorData: _currentSensorData!),
 
@@ -283,6 +291,155 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ],
     );
+  }
+
+  Widget _buildIrrigationControl() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.green[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.water_drop, color: Colors.blue[700]),
+              const SizedBox(width: 8),
+              const Text(
+                'Irrigação Manual',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Duração: $_waterSeconds s',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              Switch(
+                value: _isWatering,
+                onChanged: null,
+                activeColor: const Color(0xFF2E7D32),
+              ),
+            ],
+          ),
+          Slider(
+            value: _waterSeconds.toDouble(),
+            min: 1,
+            max: 30,
+            divisions: 29,
+            label: '${_waterSeconds}s',
+            onChanged: _isWatering
+                ? null
+                : (v) => setState(() => _waterSeconds = v.round()),
+            activeColor: const Color(0xFF2E7D32),
+            inactiveColor: Colors.grey[300],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isWatering ? null : _handleWatering,
+              icon: _isWatering
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.play_arrow),
+              label: Text(_isWatering ? 'Regando...' : 'Regar'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Ao iniciar, a bomba ligará pelo tempo selecionado e desligará automaticamente.',
+            style: TextStyle(fontSize: 12, color: Colors.black54),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleWatering() async {
+    if (_isWatering) return;
+    setState(() {
+      _isWatering = true;
+    });
+
+    try {
+      final okOn = await _firebaseService.setPumpOn(true);
+      if (!okOn) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Falha ao ligar a bomba.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        setState(() => _isWatering = false);
+        return;
+      }
+
+      // Aguarda o tempo selecionado
+      await Future.delayed(Duration(seconds: _waterSeconds));
+
+      // Desliga a bomba
+      final okOff = await _firebaseService.setPumpOn(false);
+      if (!okOff) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Atenção: não foi possível desligar a bomba.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Irrigação concluída ($_waterSeconds s).')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao executar irrigação: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isWatering = false;
+        });
+      }
+    }
   }
 
   Widget _buildHumidityStatus(double humidity) {

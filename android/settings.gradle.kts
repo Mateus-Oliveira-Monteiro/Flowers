@@ -22,4 +22,14 @@ plugins {
     id("org.jetbrains.kotlin.android") version "2.1.0" apply false
 }
 
+// Centralize repositories to avoid 'allprojects' usage in build.gradle
+dependencyResolutionManagement {
+    // Prefer settings-defined repositories; projects can still add if needed
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
 include(":app")
