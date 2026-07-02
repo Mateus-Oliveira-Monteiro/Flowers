@@ -1,12 +1,18 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Carrega o arquivo .env
-  await dotenv.load(fileName: ".env");
+  await Firebase.initializeApp(
+    options: const FirebaseOptions(
+      apiKey: 'AIzaSyDooSUGSf63Ghq02_iIhtnmwMDs4HlWS6c',
+      appId: '1:406099696497:ios:58cbc26aca8e5cf83574d0',
+      messagingSenderId: '406099696497',
+      projectId: 'flutterfire-e2e-tests',
+      databaseURL: 'https://umidade-solo-default-rtdb.firebaseio.com',
+    ),
+  );
 
   runApp(const MainApp());
 }

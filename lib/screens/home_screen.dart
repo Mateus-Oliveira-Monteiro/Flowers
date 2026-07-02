@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/sensor_data.dart';
 import '../models/plant_data.dart';
@@ -16,6 +17,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final FirebaseService _firebaseService = FirebaseService();
+  StreamSubscription<SensorData?>? _sensorSubscription;
   SensorData? _currentSensorData;
   PlantData? _currentPlantData;
   PlantInfo? _selectedPlantInfo;
@@ -33,7 +35,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _startListening() {
-    _firebaseService.getSensorDataStream().listen(
+    _sensorSubscription?.cancel();
+    _sensorSubscription = _firebaseService.getSensorDataStream().listen(
       (sensorData) {
         setState(() {
           _currentSensorData = sensorData;
@@ -48,6 +51,12 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       },
     );
+  }
+
+  @override
+  void dispose() {
+    _sensorSubscription?.cancel();
+    super.dispose();
   }
 
   void _loadPlantData() async {
